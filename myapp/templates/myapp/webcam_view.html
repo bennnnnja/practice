@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Capture</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        #videoDisplay, #previewImage {
+            display: block;
+            margin-bottom: 10px;
+        }
+        #videoDisplay {
+            width: 640px;
+            height: 480px;
+            border: 1px solid black;
+        }
+        #previewImage {
+            max-width: 100%;
+        }
+    </style>
+    <script> 
+        var video = document.createElement("video"); 
+        var previewImage = document.getElementById('previewImage');
+        navigator.mediaDevices.getUserMedia({ video: true }) 
+       .then(function(stream) { 
+                video.srcObject = stream; 
+                video.play();
+                setInterval(captureImage, 1000);
+            }) 
+       .catch(function(err) { 
+                console.log("An error occurred: " + err); 
+            }); 
+
+        function captureImage() { 
+            var canvas = document.createElement("canvas"); 
+            canvas.width = video.videoWidth; 
+            canvas.height = video.videoHeight; 
+            canvas.getContext("2d").drawImage(video, 0, 0); 
+            var imgData = canvas.toDataURL("image/png"); 
+
+            previewImage.src = imgData;
+
+            $.post("/save-image/", { image: imgData }, function(data) { 
+                if (data.message === 'Image saved successfully') { 
+                    console.log("Image saved successfully."); 
+                } else { 
+                    console.error("Failed to save image."); 
+                } 
+            }); 
+        } 
+    </script>
+</head>
+<body>
+    <div id="videoDisplay"></div>
+    <img id="previewImage" alt="Preview">
+</body>
+</html>

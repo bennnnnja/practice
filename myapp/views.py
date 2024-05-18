@@ -1,7 +1,7 @@
 import base64
 from datetime import datetime
 from io import BytesIO
-import os 
+import os
 from PIL import Image 
 from django.conf import settings 
 from django.core.files.storage import default_storage 
@@ -25,21 +25,22 @@ def save_image(request):
                 print("Yes!")
                 _, image_data = image_data.split(',', 1)
 
-            # Декодирование base64 изображения
+            # Декодируем строку base64 в байты
             image_bytes = base64.b64decode(image_data)
 
-            # Создание объекта изображения из байтов
-            image = Image.open(BytesIO(image_bytes))
+            # Создаем объект BytesIO из декодированных байтов
+            image_io = BytesIO(image_bytes)
 
-            # Генерация уникального имени файла
+            # Открываем изображение с помощью PIL
+            image = Image.open(image_io)
+
             # Используем текущее время для создания уникального имени файла
             photo_time = datetime.now().strftime("%Y%m%d%H%M%S")
             print(photo_time)
             image_name = f'captured_images/{photo_time}.png'
             
-
-            # Проверка существования директории и ее создание, если необходимо
-            image_dir = os.path.join(settings.MEDIA_ROOT, image_name)
+            # Правильный способ определения пути к директории
+            image_dir = os.path.join(settings.MEDIA_ROOT, 'captured_images', image_name)
 
             # Сохранение изображения
             image.save(image_dir)

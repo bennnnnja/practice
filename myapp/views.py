@@ -3,9 +3,10 @@ from datetime import datetime
 from io import BytesIO
 import os
 from PIL import Image 
+import cv2
 from django.conf import settings 
 from django.core.files.storage import default_storage 
-from django.http import JsonResponse 
+from django.http import JsonResponse, StreamingHttpResponse 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
@@ -51,3 +52,28 @@ def save_image(request):
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+class VideoCamera(object):
+    def __init__(self):
+        self.video = cv2.VideoCapture(0)
+
+    def __del__(self):
+        self.video.release()
+
+    def get_frame(self):
+        success, image = self.video.read()
+        if not success:
+            return None
+        ret, jpeg = cv2.imencode('.jpg', image)
+        return jpeg.tobytes()
+
+def video_feed(request):
+    camera = VideoCamera()
+    return StreamingHttpResponse(gen(camera), content_type='multipart/x-mixed-replace; boundary=frame')
+
+def gen(camera):
+    while True:
+        frame = camera.get_frame()
+        if frame is None:
+            break
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')

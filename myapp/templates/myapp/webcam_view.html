@@ -1,44 +1,50 @@
-<!-- <!DOCTYPE html>
-<html>
-<head>
-    <title>Webcam Capture</title>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <style>
-        #videoDisplay, #previewImage {
-            display: block;
-            margin-bottom: 10px;
-        }
-        #videoDisplay {
-            width: 640px;
-            height: 480px;
-            border: 1px solid black;
-        }
-        #previewImage {
-            max-width: 100%;
-        }
-    </style>
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <title>Webcam Capture</title> 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> 
     <script> 
+        function getCookie(name) { 
+            let cookieValue = null; 
+            if (document.cookie && document.cookie!== '') { 
+                const cookies = document.cookie.split(';'); 
+                for (let i = 0; i < cookies.length; i++) { 
+                    const cookie = jQuery.trim(cookies[i]); 
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) { 
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); 
+                        break; 
+                    } 
+                } 
+            } 
+            return cookieValue; 
+        } 
+ 
+        $(document).ready(function(){ 
+            $.ajaxSetup({ 
+                headers: { 
+                    'X-CSRFToken': getCookie('csrftoken') 
+                } 
+            }); 
+        }); 
+ 
         var video = document.createElement("video"); 
-        var previewImage = document.getElementById('previewImage');
         navigator.mediaDevices.getUserMedia({ video: true }) 
-       .then(function(stream) { 
+          .then(function(stream) { 
                 video.srcObject = stream; 
-                video.play();
-                setInterval(captureImage, 1000);
+                video.play(); 
+                setInterval(captureImage, 1000); // Обновление каждую секунду 
             }) 
-       .catch(function(err) { 
+          .catch(function(err) { 
                 console.log("An error occurred: " + err); 
             }); 
-
+ 
         function captureImage() { 
             var canvas = document.createElement("canvas"); 
             canvas.width = video.videoWidth; 
             canvas.height = video.videoHeight; 
             canvas.getContext("2d").drawImage(video, 0, 0); 
             var imgData = canvas.toDataURL("image/png"); 
-
-            previewImage.src = imgData;
-
+ 
             $.post("/save-image/", { image: imgData }, function(data) { 
                 if (data.message === 'Image saved successfully') { 
                     console.log("Image saved successfully."); 
@@ -47,15 +53,15 @@
                 } 
             }); 
         } 
-    </script>
-</head>
-<body>
-    <div id="videoDisplay"></div>
-    <img id="previewImage" alt="Preview">
-</body>
-</html> -->
+    </script> 
+</head> 
+<body> 
+    <div id="videoDisplay" style="width: 640px; height: 480px;"></div> 
+</body> 
+</html>
 
-<!DOCTYPE html>
+
+<!-- <!DOCTYPE html>
 <html>
 <head>
     <title>Webcam Capture</title>
@@ -86,4 +92,4 @@
         video.play();
     </script>
 </body>
-</html>
+</html> -->

@@ -1,4 +1,59 @@
+<!DOCTYPE html>
 <html>
-    <p>Hi there!</p>
-    <p>It works!</p>
+<head>
+    <title>Webcam Capture</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = jQuery.trim(cookies[i]);
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        $(document).ready(function(){
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            $('#uploadBtn').on('click', function() {
+                var file = document.getElementById('fileInput').files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = function(e) {
+                        var imgData = e.target.result;
+                        $.post("/save-image/", { image: imgData }, function(data) {
+                            if (data.message) {
+                                console.log("Image processed and saved successfully.");
+                                if (data.resized_image) {
+                                    $('#resultImage').attr('src', '/media/captured_images/' + data.resized_image);
+                                }
+                            } else {
+                                console.error("Failed to save image.");
+                            }
+                        });
+                    };
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="videoDisplay" style="width: 640px; height: 480px;"></div>
+    <input type="file" id="fileInput">
+    <button id="uploadBtn">Upload and Process Image</button>
+    <br>
+    <img id="resultImage" alt="Processed Image will appear here">
+</body>
 </html>

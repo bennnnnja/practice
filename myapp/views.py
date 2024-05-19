@@ -2,17 +2,19 @@ import base64
 from datetime import datetime
 from io import BytesIO
 import os
-from PIL import Image 
 import cv2
-from django.conf import settings 
-from django.core.files.storage import default_storage 
-from django.http import JsonResponse, StreamingHttpResponse 
+from PIL import Image
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from .preprocessing import resize_image
 
 
-def webcam_view(request):    
-    return render(request, 'webcam_view.html')
+def home(request):
+    return render(request, 'index.html')
+
 
 @csrf_exempt
 def save_image(request):
@@ -23,7 +25,6 @@ def save_image(request):
 
             # Удаление префикса data:image/png;base64, если он присутствует
             if image_data.startswith('data:image'):
-                print("Yes!")
                 _, image_data = image_data.split(',', 1)
 
             # Декодируем строку base64 в байты
@@ -35,45 +36,24 @@ def save_image(request):
             # Открываем изображение с помощью PIL
             image = Image.open(image_io)
 
-            # Используем текущее время для создания уникального имени файла
-            photo_time = datetime.now().strftime("%Y%m%d%H%M%S")
-            print(photo_time)
-            image_name = f'captured_images/{photo_time}.png'
-            
-            # Правильный способ определения пути к директории
-            image_dir = os.path.join(settings.MEDIA_ROOT, 'captured_images', image_name)
+            # Сохраняем исходное изображение для проверки
+            original_image_name = f'captured_images/original_{datetime.now().strftime("%Y%m%d%H%M%S")}.png'
+            original_image_path = os.path.join(settings.MEDIA_ROOT, original_image_name)
+            image.save(original_image_path)
 
-            # Сохранение изображения
-            image.save(image_dir)
+            # Используем функцию resize_image для обработки изображения
+            resized_face = resize_image(original_image_path)
 
-            return JsonResponse({'message': 'Image saved successfully'})
+            if resized_face is not None:
+                # Сохраняем обработанное изображение
+                resized_image_name = f'resized_face_{datetime.now().strftime("%Y%m%d%H%M%S")}.png'
+                resized_image_path = os.path.join(settings.MEDIA_ROOT, 'captured_images', resized_image_name)
+                cv2.imwrite(resized_image_path, resized_face)
+
+                return JsonResponse({'message': 'Image processed and saved successfully', 'resized_image': resized_image_name})
+            else:
+                return JsonResponse({'error': 'No face detected in the image'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     else:
         return JsonResponse({'error': 'Invalid request method'}, status=400)
-
-class VideoCamera(object):
-    def __init__(self):
-        self.video = cv2.VideoCapture(0)
-
-    def __del__(self):
-        self.video.release()
-
-    def get_frame(self):
-        success, image = self.video.read()
-        if not success:
-            return None
-        ret, jpeg = cv2.imencode('.jpg', image)
-        return jpeg.tobytes()
-
-def video_feed(request):
-    camera = VideoCamera()
-    return StreamingHttpResponse(gen(camera), content_type='multipart/x-mixed-replace; boundary=frame')
-
-def gen(camera):
-    while True:
-        frame = camera.get_frame()
-        if frame is None:
-            break
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
